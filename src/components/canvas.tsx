@@ -5,7 +5,7 @@
  */
 
 import * as Random from 'random-js'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Game } from '../lib/game'
 import { IGameEvent, GameEventType } from '../lib/ws'
@@ -35,6 +35,11 @@ export default () => {
    * WebSocket Connection
    */
   const wsRef = useRef<WebSocket>()
+
+  /**
+   * Watchers
+   */
+  const [watchers, setWatchers] = useState(1)
 
   /**
    * Load the game engine async instead of through an import
@@ -83,25 +88,32 @@ export default () => {
     )
   }, [])
 
+  const reconnectBackoff = useRef(100)
+
   /**
    * Initialize the websocket connection
    */
   const initWs = useCallback(() => {
-    if (wsRef.current) {
-      log.warn('websocket connection already initialized')
-      return
-    }
-
     const wsUrl = `${window.location.origin.replace(/http/, 'ws')}/game`
     log.info('initializing websocket connection to %s', wsUrl)
 
     wsRef.current = new WebSocket(wsUrl)
     wsRef.current.onopen = () => {
       log.info('websocket connection opened')
+
+      reconnectBackoff.current = 100
     }
 
     wsRef.current.onclose = reason => {
       log.info('websocket connection closed', reason)
+
+      setTimeout(() => {
+        log.info('attempting to reconnect')
+
+        initWs()
+
+        reconnectBackoff.current *= 2
+      }, reconnectBackoff.current)
     }
 
     wsRef.current.onmessage = event => {
@@ -118,7 +130,7 @@ export default () => {
           }
 
           case GameEventType.Watchers: {
-            appRef.current?.drawWatchers(message)
+            setWatchers(message)
             break
           }
         }
@@ -143,5 +155,23 @@ export default () => {
     }
   }, [])
 
-  return <canvas ref={canvasRef} />
+  return (
+    <div className="h-full w-full">
+      <div className="fixed p-8 top-0 right-0 flex flex-col select-none text-right">
+        <span className="text-white font-bold leading-tight">{watchers} watching</span>
+        <span className="italic text-white text-xs leading-tight">
+          Click anywhere to create a firework
+        </span>
+      </div>
+
+      <canvas ref={canvasRef} />
+
+      <div className="fixed p-8 bottom-0 flex flex-col select-none text-left">
+        <h1 className="text-2xl text-white font-bold tracking-wide">Fireworks</h1>
+        <span className="text-white text-xs leading-tight">
+          by <a className="hover:opacity-75 transition-opacity duration-200 ease-out" href="https://lacke.mn/kb/dev/fireworks?ref=fireworks">Thomas Lackemann</a>
+        </span>
+      </div>
+    </div>
+  )
 }

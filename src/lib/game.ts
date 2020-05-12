@@ -17,7 +17,6 @@ export class Game {
   app: Application
 
   private bg?: Sprite
-  private ui?: Container
   private particles?: Container
 
   private tiltShiftFilter: TiltShiftFilter
@@ -44,8 +43,8 @@ export class Game {
       const xPercent = x / width
       const yPercent = y / height
 
-      const xSkew = lerp(-0.07, 0.07, xPercent)
-      const ySkew = lerp(-0.07, 0.07, yPercent)
+      const xSkew = lerp(0.02, -0.02, xPercent)
+      const ySkew = lerp(-0.02, 0.02, yPercent)
 
       if (this.bg) {
         this.bg.setTransform(
@@ -102,32 +101,6 @@ export class Game {
   }
 
   /**
-   * Draw Watchers
-   */
-  drawWatchers = (watchers: number) => {
-    if (!this.ui) {
-      this.ui = new Container()
-      this.app.stage.addChild(this.ui)
-    }
-
-    let text = this.ui.getChildByName('label') as Text
-    if (!text) {
-      text = new Text('', {
-        fontSize: 16,
-        fontFamily: 'Arial',
-        fill: 0xffffff,
-      })
-      text.name = 'label'
-
-      this.ui.addChild(text)
-    }
-
-    text.text = `${watchers} watching`
-    text.anchor.set(0, 1)
-    text.position.set(12, this.app.renderer.view.height - 12)
-  }
-
-  /**
    * Initialize a firework
    */
   drawFirework = (config: Partial<particles.EmitterConfig | particles.OldEmitterConfig>) => {
@@ -146,9 +119,7 @@ export class Game {
       this.particles,
       [Texture.from('img/Sparks.png')],
       particleSettings,
-    ).playOnceAndDestroy(() => {
-      console.log('done')
-    })
+    ).playOnceAndDestroy()
   }
 }
 
